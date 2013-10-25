@@ -62,11 +62,12 @@ ISR (TIM0_COMPA_vect)
 ISR (TIM0_OVF_vect)
 {
     PORTB = 0Xff;
+    if ((light == 0xff) | (light == 0x00))
+	mark =~ mark;
     if (mark == 1)
         OCR0A = light++;
     else
         OCR0A = light--;
-    if ((light == 0xff) | (light == 0x00))
-        mark =~ mark;
+
 }
 
