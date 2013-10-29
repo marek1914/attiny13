@@ -3,8 +3,6 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-volatile unsigned int adc_data;
-volatile unsigned char time_ok;
 volatile unsigned char light = 0;
 volatile char mark = 1;
 unsigned char led = 0x0f;
@@ -14,22 +12,19 @@ void Init_IO(void);
 void display_led_mode1 (char num); 
 void display_led_mode2 (void);
 void Init_timer_led ();
-void Init_timer_adc ();
 void Init_ADC ();
+int ReadADC (void);
 
 int main(void) 
 {
-    Init_IO();
+    Init_IO ();
+    Init_ADC ();
    // display_led_mode2 ();
     while (1)
     {
-	if (time_ok)
-	{
-	    time_ok = 0; 
-	   // adc_value = (unsigned long) adc_data * 1100 / 1024;
-    	}
-	if (adc_data == 0)
-	    display_led_mode1 (2);
+	ReadADC ();
+	adc_value = ReadADC ();
+	display_led_mode1 (adc_value / 12);
     }
 }
 
@@ -42,11 +37,13 @@ void Init_IO (void)
 void display_led_mode1 (char num)
 {
     char i;
+    if (num > 4)
+	num = 4;
     
     for (i = 0; i <= num; i++)
     {
 	PORTB = (led >> i); 
-	_delay_ms (50); 
+	_delay_ms (30); 
     } 
     led = 0x0f;
 }
@@ -68,25 +65,12 @@ void Init_timer_led ()
     sei();
 }
 
-//ADC模式定时器初始化
-void Init_timer_adc ()
-{
-    TCCR0A = (1<<WGM01)|(1<<WGM00);
-    TCCR0B = (1<<CS01)|(1<<CS00);
-    TCNT0 = 0X00;
-    OCR0B = 0X96; //控制取样频率
-    TIMSK0 = (1<<OCF0B)|(1<<TOIE0);
-}
 
 ISR (TIM0_COMPA_vect)
 {
     PORTB = 0x00;
 }
 
-ISR (TIM0_COMPB_vect)
-{
-    time_ok = 1;
-}
 
 ISR (TIM0_OVF_vect)
 {
@@ -99,18 +83,19 @@ ISR (TIM0_OVF_vect)
 	mark = ~mark;
 }
 
-//ADc转换结束中断
-ISR (ADC_vect)
+void Init_ADC (void)
 {
-    adc_data = ADCW;
+   ADMUX |= (1 << REFS0); // 1.1v as Reference 
+   ADMUX |= (1 << MUX1) | (0 << MUX0); // ADC2 PB.4 
+   ADCSRA |= (1 << ADEN); // Enable ADC
 }
 
-void Init_ADC ()
+int ReadADC(void)
 {
-    Init_timer_adc ();
-    ADMUX = (1<<REFS0)|(1<<MUX1);
-    ADCSRA = (1<<ADEN)|(1<<ADATE)|(1<<ADIE)|(1<<ADPS2)|(1<<ADPS1);
-    ADCSRB = (1<<ADTS2)|(1<<ADTS0); //触发源选用T/C比较匹配B
-    DIDR0 = (1<<ADC2D);
-    sei();
+      ADMUX |= (1 << REFS0); // VCC as Reference 
+      ADMUX |= 2;// ADC2 PB.4 
+      ADCSRA |= (1 << ADSC); // Start Converstion 
+      while((ADCSRA & 0x40) !=0){}; //wait for conv complete 
+      return ADCW;
 }
+                
