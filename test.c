@@ -20,7 +20,6 @@ void Init_ADC (void);
 int main(void) 
 {
     unsigned int adc_value = 0;
-    char flag = 0;
     Init_IO ();
     Init_timer_adc ();
     Init_ADC ();
@@ -40,29 +39,6 @@ int main(void)
 	}
 	else 
 	    display_led_mode2 ();
-//	display_led_mode1 (adc_value);
-	
-//	_delay_ms(1000);
-//	off_timer_led ();
-//	display_led_mode1 (adc_value);
-	
-/*	if (adc_value < 1)
-	{
-	    cli ();
-	    display_led_mode2 ()
-	    sei ();
-	    flag = 1;
-	}
-	else
-	{
-	    if (flag)
-	    {
-		flag = 0;
-		off_timer_led ();
-	    }
-	    display_led_mode1 (adc_value);
-	}
-*/		
     }
 }
 
