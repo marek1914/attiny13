@@ -13,24 +13,56 @@ void Init_IO(void);
 void display_led_mode1 (char num); 
 void display_led_mode2 (void);
 void Init_timer_led (void);
+void off_timer_led (void);
 void Init_timer_adc (void);
 void Init_ADC (void);
 
 int main(void) 
 {
     unsigned int adc_value = 0;
+    char flag = 0;
     Init_IO ();
     Init_timer_adc ();
     Init_ADC ();
+    display_led_mode2();
     while (1)
     {
 	if (time_ok)
 	{
 	    time_ok = 0;
 	    adc_value = (unsigned long) adc_data * 1100 / 1024;
-	    adc_value = adc_value / 10;
+	    adc_value = adc_value / 17;
 	}
-	display_led_mode1 (adc_value);
+	if (adc_value > 0)
+	{
+	    off_timer_led ();
+	    display_led_mode1 (adc_value);
+	}
+	else 
+	    display_led_mode2 ();
+//	display_led_mode1 (adc_value);
+	
+//	_delay_ms(1000);
+//	off_timer_led ();
+//	display_led_mode1 (adc_value);
+	
+/*	if (adc_value < 1)
+	{
+	    cli ();
+	    display_led_mode2 ()
+	    sei ();
+	    flag = 1;
+	}
+	else
+	{
+	    if (flag)
+	    {
+		flag = 0;
+		off_timer_led ();
+	    }
+	    display_led_mode1 (adc_value);
+	}
+*/		
     }
 }
 
@@ -48,8 +80,9 @@ void display_led_mode1 (char num)
     
     for (i = 0; i <= num; i++)
     {
-	PORTB = (led >> i); 
-	_delay_ms (30); 
+	PORTB &= 0XF0;
+	PORTB |= ((led >> i)&0X0F); 
+	_delay_ms (70); 
     } 
     led = 0x0f;
 }
@@ -62,25 +95,23 @@ void display_led_mode2 (void)
 //led模式寄存器初始化
 void Init_timer_led ()
 {
-    
-    TCCR0A = (1<<WGM01)|(1<<WGM00); 
-    TCCR0B = (1<<CS01)|(1<<CS00);
-    TCNT0 = 0X00;
-    OCR0B = 0x00;
     TIMSK0 |= (1<<OCF0B)|(1<<TOIE0);
-    sei();
 }
 
+void off_timer_led (void)
+{
+    TIMSK0 &= ~((1<<OCF0B)|(1<<TOIE0));
+}
 
 ISR (TIM0_COMPB_vect)
 {
-    PORTB = 0x00;
+    PORTB &= 0xf0;
 }
 
 
 ISR (TIM0_OVF_vect)
 {
-    PORTB = 0Xff;
+    PORTB |= 0X0f;
     if (mark == 1)
         OCR0B = light++;
     else
@@ -91,7 +122,7 @@ ISR (TIM0_OVF_vect)
 
 void Init_timer_adc ()
 {
-    TCCR0A = (1<<WGM01); //CTC模式
+    TCCR0A = (1<<WGM01)|(1<<WGM00); //快速PWM模式
     TCCR0B = (1<<CS01)|(1<<CS00);
     OCR0A  = 0X96; //控制取样频率 2ms每次
     TIMSK0 = (1<<OCIE0A);
