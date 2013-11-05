@@ -57,6 +57,10 @@ OPTIMIZE       = -O2
 DEFS           =
 LIBS           =
 
+#add it myself
+AVRDUDE = avrdude
+AVRDUDE_FLAGS = -c usbasp 
+
 # You should not have to change anything below here.
 
 CC             = avr-gcc
@@ -81,6 +85,7 @@ demo.o: test.c
 clean:
 	rm -rf *.o $(PRG).elf *.eps *.png *.pdf *.bak 
 	rm -rf *.lst *.map $(EXTRA_CLEAN_FILES)
+
 
 lst:  $(PRG).lst
 
@@ -145,3 +150,6 @@ pdf: $(PRG).pdf
 %.png: %.fig
 	$(FIG2DEV) -L png $< $@
 
+
+download:
+	sudo $(AVRDUDE) -p $(MCU_TARGET) $(AVRDUDE_FLAGS) -U flash:w:$(PRG).hex
